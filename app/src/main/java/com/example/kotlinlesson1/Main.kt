@@ -67,6 +67,13 @@ fun main() {
     println(user1.startTime)
     Thread.sleep(1000)
     println(user1.startTime)
+
+    val usersList = mutableListOf<User>(user1)
+    usersList.apply {
+        add(User(2, "kizaru", 27, Type.FULL))
+        add(User(3, "bogdan", 7, Type.DEMO))
+        add(User(4, "petuh", 27, Type.FULL))
+    }
 }
 
 fun buy(publication: Publication) {
