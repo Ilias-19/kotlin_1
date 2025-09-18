@@ -1,43 +1,15 @@
 package com.example.kotlinlesson1
+
 import android.os.Build
 import androidx.annotation.RequiresApi
-import java.time.LocalDateTime
-import java.time.LocalTime
+import com.example.kotlinlesson1.Book
+import com.example.kotlinlesson1.Magazine
+import com.example.kotlinlesson1.Type
+import com.example.kotlinlesson1.User
+import com.example.kotlinlesson1.Publication
+import com.example.kotlinlesson1.adultValidation
+import kotlinx.coroutines.handleCoroutineException
 
-interface Publication {
-    val price : Double
-    val wordCount : Int
-    fun getType() : String
-}
-
-class Book(override val price: Double, override val wordCount: Int) : Publication {
-    override fun getType() : String {
-        return when {
-            wordCount <= 1000 -> "Flash Fiction"
-            wordCount <=  7500 -> "Short Story"
-            else -> "Novel"
-        }
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null || this::class != other::class) return false
-        val book = other as Book
-        return book.wordCount == wordCount && book.price == price
-    }
-
-    override fun hashCode(): Int {
-        var result = price.hashCode()
-        result = 31 * result + wordCount
-        return result
-    }
-}
-
-class Magazine(override val price: Double, override val wordCount: Int) : Publication {
-    override fun getType() : String {
-        return "Magazine"
-    }
-}
 
 @RequiresApi(Build.VERSION_CODES.O)
 fun main() {
@@ -59,21 +31,68 @@ fun main() {
     }
     buy(book4)
 
-    val sum = {num1:Int, num2:Int -> println(num1 + num2)}
-    sum(523,42)
+    val sum = { num1: Int, num2: Int -> println(num1 + num2) }
+    sum(523, 42)
 
 
-    val user1 : User = User(1, "oleg", 19, Type.DEMO)
+    val user1: User = User(1, "oleg", 19, Type.DEMO)
     println(user1.startTime)
     Thread.sleep(1000)
     println(user1.startTime)
 
+
+    // Работа со списком
     val usersList = mutableListOf<User>(user1)
+    usersList.addAll(
+        listOf(
+            User(2, "kizaru", 27, Type.FULL),
+            User(3, "bogdan", 7, Type.DEMO),
+            User(4, "petuh", 27, Type.FULL)
+        )
+    )
+
+    /*
     usersList.apply {
         add(User(2, "kizaru", 27, Type.FULL))
         add(User(3, "bogdan", 7, Type.DEMO))
         add(User(4, "petuh", 27, Type.FULL))
     }
+    */
+
+
+    // Фильтрация
+    val fullAccessUsersList = usersList.filter { it.type == Type.FULL }
+    println("List of users with full access: $fullAccessUsersList")
+
+    // Преобразование списка
+    val transformedUsersList = usersList.map { it -> it.name }
+    println("First element of transformed list: " + transformedUsersList.first())
+    println("Last element of transformed list: " + transformedUsersList.last())
+
+
+    // Проверка что пользователю больше 18 лет
+    user1.adultValidation()
+
+
+    // Авторизация
+    val authorization = object : AuthCallback {
+        override fun authSuccess() {
+            println("Authorization Success!")
+        }
+
+        override fun authFailed() {
+            println("Authorization Failed!")
+        }
+    }
+
+    auth(user1, authorization) {
+        println("cache updated")
+    }
+
+
+    val act = Login(user1)
+    doAction(act, authorization)
+
 }
 
 fun buy(publication: Publication) {
@@ -81,11 +100,30 @@ fun buy(publication: Publication) {
 }
 
 
-enum class Type {
-    DEMO, FULL
+fun User.adultValidation() {
+    if (this.age >= 18) {
+        println("User: $this - is over 18 years old")
+    } else throw RuntimeException("error adult validation")
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
-data class User(val id: Int, val name: String, val age: Int, val type : Type) {
-    val startTime: LocalTime by lazy { LocalTime.now() }
+inline fun auth(user: User, authorization: AuthCallback, updateCache: () -> Unit) {
+    try {
+        user.adultValidation()
+        authorization.authSuccess()
+        updateCache()
+    }
+    catch (e: Exception) {
+        authorization.authFailed()
+    }
+}
+
+
+fun doAction(act : Action, authorization : AuthCallback) {
+    when (act) {
+        is Registration -> println("Registration started")
+        is Login -> auth(act.user, authorization) {
+            println("cache updated")
+        }
+        is Logout -> println("Logout")
+    }
 }
